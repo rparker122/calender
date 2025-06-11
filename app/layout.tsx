@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "Minimalist Calendar",
   description: "A beautiful minimalist calendar application",
-    generator: 'v0.dev'
+    
 }
 
 export default function RootLayout({
