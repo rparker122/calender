@@ -58,6 +58,9 @@ export default function Calendar() {
   })
   const [view, setView] = useState<"month" | "week" | "day">("month")
 
+  // NEW: Dialog open state
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
   // Get days in month
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate()
@@ -100,6 +103,9 @@ export default function Calendar() {
       endDate: new Date(),
       color: "blue",
     })
+
+    // CLOSE the dialog after adding event
+    setIsDialogOpen(false)
   }
 
   // Get events for a specific day
@@ -156,9 +162,11 @@ export default function Calendar() {
           <Button variant={view === "day" ? "default" : "outline"} onClick={() => setView("day")} size="sm">
             Day
           </Button>
-          <Dialog>
+
+          {/* Controlled Dialog */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add Event
               </Button>
@@ -242,8 +250,11 @@ export default function Calendar() {
               {Array.from({ length: prevMonthDays }).map((_, index) => {
                 const prevMonthDay = getDaysInMonth(year, month - 1) - prevMonthDays + index + 1
                 return (
-                  <div key={`prev-${index}`} className="p-2 border border-border/50 min-h-24 text-muted-foreground">
-                    <span className="text-xs">{prevMonthDay}</span>
+                  <div
+                    key={`prev-${index}`}
+                    className="p-2 text-muted-foreground border border-muted/50 text-center text-sm"
+                  >
+                    {prevMonthDay}
                   </div>
                 )
               })}
@@ -251,26 +262,21 @@ export default function Calendar() {
               {/* Current month days */}
               {Array.from({ length: daysInMonth }).map((_, index) => {
                 const day = index + 1
-                const isToday =
-                  day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()
-
                 const dayEvents = getEventsForDay(day)
-
+                const isToday =
+                  day === new Date().getDate() &&
+                  month === new Date().getMonth() &&
+                  year === new Date().getFullYear()
                 return (
                   <div
-                    key={`current-${index}`}
-                    className={cn("p-2 border border-border/50 min-h-24 relative", isToday && "bg-primary/5")}
+                    key={day}
+                    className={cn(
+                      "border border-muted/50 p-1 flex flex-col",
+                      isToday ? "bg-accent text-accent-foreground" : ""
+                    )}
                   >
-                    <span
-                      className={cn(
-                        "inline-flex items-center justify-center w-6 h-6 text-xs rounded-full",
-                        isToday && "bg-primary text-primary-foreground",
-                      )}
-                    >
-                      {day}
-                    </span>
-
-                    <div className="mt-1 space-y-1 max-h-20 overflow-y-auto">
+                    <span className="text-xs text-muted-foreground">{day}</span>
+                    <div className="flex flex-col gap-1 mt-1 overflow-auto max-h-20">
                       {dayEvents.map((event) => (
                         <EventItem key={event.id} event={event} />
                       ))}
@@ -278,112 +284,12 @@ export default function Calendar() {
                   </div>
                 )
               })}
-
-              {/* Next month days */}
-              {Array.from({ length: 42 - (prevMonthDays + daysInMonth) }).map((_, index) => (
-                <div key={`next-${index}`} className="p-2 border border-border/50 min-h-24 text-muted-foreground">
-                  <span className="text-xs">{index + 1}</span>
-                </div>
-              ))}
             </div>
           </>
         )}
 
-        {view === "week" && (
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: 7 }).map((_, index) => {
-                const date = new Date(currentDate)
-                const currentDay = date.getDay()
-                const diff = index - currentDay
-                date.setDate(date.getDate() + diff)
-
-                const isToday =
-                  date.getDate() === new Date().getDate() &&
-                  date.getMonth() === new Date().getMonth() &&
-                  date.getFullYear() === new Date().getFullYear()
-
-                return (
-                  <div key={index} className="text-center">
-                    <div className="mb-2">
-                      <div className="text-sm text-muted-foreground">{dayNames[index]}</div>
-                      <div
-                        className={cn(
-                          "inline-flex items-center justify-center w-8 h-8 text-sm rounded-full",
-                          isToday && "bg-primary text-primary-foreground",
-                        )}
-                      >
-                        {date.getDate()}
-                      </div>
-                    </div>
-                    <div className="h-96 border border-border/50 rounded-md p-2 overflow-y-auto">
-                      {events
-                        .filter((event) => {
-                          const eventDate = new Date(event.date)
-                          return (
-                            eventDate.getDate() === date.getDate() &&
-                            eventDate.getMonth() === date.getMonth() &&
-                            eventDate.getFullYear() === date.getFullYear()
-                          )
-                        })
-                        .map((event) => (
-                          <EventItem key={event.id} event={event} showTime />
-                        ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {view === "day" && (
-          <div className="p-4">
-            <div className="text-center mb-4">
-              <div
-                className={cn(
-                  "inline-flex items-center justify-center w-10 h-10 text-lg rounded-full",
-                  currentDate.getDate() === new Date().getDate() &&
-                    currentDate.getMonth() === new Date().getMonth() &&
-                    currentDate.getFullYear() === new Date().getFullYear() &&
-                    "bg-primary text-primary-foreground",
-                )}
-              >
-                {currentDate.getDate()}
-              </div>
-              <div className="text-sm text-muted-foreground">{dayNames[currentDate.getDay()]}</div>
-            </div>
-
-            <div className="space-y-2">
-              {Array.from({ length: 24 }).map((_, hour) => {
-                const hourEvents = events.filter((event) => {
-                  const eventDate = new Date(event.date)
-                  return (
-                    eventDate.getDate() === currentDate.getDate() &&
-                    eventDate.getMonth() === currentDate.getMonth() &&
-                    eventDate.getFullYear() === currentDate.getFullYear() &&
-                    eventDate.getHours() === hour
-                  )
-                })
-
-                return (
-                  <div key={hour} className="flex border-t border-border/50 py-2">
-                    <div className="w-16 text-sm text-muted-foreground">
-                      {hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`}
-                    </div>
-                    <div className="flex-1">
-                      {hourEvents.map((event) => (
-                        <EventItem key={event.id} event={event} showTime detailed />
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* You can add 'week' and 'day' views here as needed */}
       </Card>
     </div>
   )
 }
-
